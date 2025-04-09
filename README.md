@@ -51,7 +51,7 @@
 > - If you see a transparent bar just change the wallpaper from notch > wallpaper as then it would gen color configs
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tr1xem/hyprfabricated/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/TheRaider069/hyprfabricated/main/install.sh | bash
 ```
 
 ### Manual Installation
