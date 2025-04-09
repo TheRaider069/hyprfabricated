@@ -301,16 +301,16 @@ def generate_hyprconf() -> str:
     Generate the Hypr configuration string using the current bind_vars.
     """
     home = os.path.expanduser("~")
-    return f"""exec-once = uwsm-app $(python {home}/.config/{APP_NAME_CAP}/main.py)
-exec = pgrep -x "hypridle" > /dev/null || uwsm app -- hypridle
-exec = uwsm app -- swww-daemon
+    return f"""exec-once = $(python {home}/.config/{APP_NAME_CAP}/main.py)
+exec = pgrep -x "hypridle" > /dev/null || hypridle
+exec = swww-daemon
 exec-once =  wl-paste --type text --watch cliphist store
 exec-once =  wl-paste --type image --watch cliphist store
 
 $fabricSend = fabric-cli exec {APP_NAME}
 $hyfbMessage = notify-send "tr1x_em" "What are you doing?" -i "{home}/.config/{APP_NAME_CAP}/assets/av.png" -a "Source Code" -A "Be patient. 🍙"
 
-bind = {bind_vars['prefix_restart']}, {bind_vars['suffix_restart']}, exec, killall {APP_NAME}; uwsm-app $(python {home}/.config/{APP_NAME_CAP}/main.py) # Reload {APP_NAME_CAP} | Default: SUPER ALT + B
+bind = {bind_vars['prefix_restart']}, {bind_vars['suffix_restart']}, exec, killall {APP_NAME}; $(python {home}/.config/{APP_NAME_CAP}/main.py) # Reload {APP_NAME_CAP} | Default: SUPER ALT + B
 bind = {bind_vars['prefix_hyfdmsg']}, {bind_vars['suffix_hyfdmsg']}, exec, $hyfbMessage # Message | Default: SUPER + A
 bind = {bind_vars['prefix_dash']}, {bind_vars['suffix_dash']}, exec, $fabricSend 'notch.open_notch("dashboard")' # Dashboard | Default: SUPER + D
 bind = {bind_vars['prefix_bluetooth']}, {bind_vars['suffix_bluetooth']}, exec, $fabricSend 'notch.open_notch("bluetooth")' # Bluetooth | Default: SUPER + B
@@ -327,8 +327,8 @@ bind = {bind_vars['prefix_power']}, {bind_vars['suffix_power']}, exec, $fabricSe
 bind = {bind_vars['prefix_toggle']}, {bind_vars['suffix_toggle']}, exec, $fabricSend 'bar.toggle_hidden()' # Toggle Bar | Default: SUPER CTRL + B
 bind = {bind_vars['prefix_toggle']}, {bind_vars['suffix_toggle']}, exec, $fabricSend 'notch.toggle_hidden()' # Toggle Notch | Default: SUPER CTRL + B
 bind = {bind_vars['prefix_css']}, {bind_vars['suffix_css']}, exec, $fabricSend 'app.set_css()' # Reload CSS | Default: SUPER SHIFT + B
-bind = {bind_vars["prefix_config"]}, {bind_vars["suffix_config"]}, exec,uwsm app -- python {home}/.config/{APP_NAME_CAP}/config/config.py
-bind = {bind_vars['prefix_restart_inspector']}, {bind_vars['suffix_restart_inspector']}, exec, killall {APP_NAME}; uwsm app -- $(GTK_DEBUG=interactive python {home}/.config/{APP_NAME_CAP}/main.py) # Restart with inspector | Default: SUPER CTRL ALT + B
+bind = {bind_vars["prefix_config"]}, {bind_vars["suffix_config"]}, exec, python {home}/.config/{APP_NAME_CAP}/config/config.py
+bind = {bind_vars['prefix_restart_inspector']}, {bind_vars['suffix_restart_inspector']}, exec, killall {APP_NAME}; $(GTK_DEBUG=interactive python {home}/.config/{APP_NAME_CAP}/main.py) # Restart with inspector | Default: SUPER CTRL ALT + B
 
 # Wallpapers directory: {bind_vars['wallpapers_dir']}
 
