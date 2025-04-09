@@ -341,9 +341,9 @@ exec = cp $wallpaper ~/.current.wall
 general {{
     col.active_border = 0xff$primary
     col.inactive_border = 0xff$surface
-    gaps_in = 2
-    gaps_out = 4
-    border_size = 2
+    gaps_in = 6
+    gaps_out = 12
+    border_size = 0
     layout = dwindle
 }}
 
@@ -363,9 +363,9 @@ decoration {{
     rounding = 14
     shadow {{
       enabled = true
-      range = 10
+      range = 15
       render_power = 2
-      color = rgba(0, 0, 0, 0.25)
+      color = rgba(0, 0, 0, 1)
     }}
 }}
 
