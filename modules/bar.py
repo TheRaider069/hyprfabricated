@@ -202,6 +202,7 @@ class Bar(Window):
         self.v_end_children = [
             self.battery,
             self.metrics,
+            self.sysprofiles,
             self.language,
             self.date_time,
             self.button_power,

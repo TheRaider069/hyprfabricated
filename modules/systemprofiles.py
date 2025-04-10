@@ -1,25 +1,18 @@
 import subprocess
-import psutil
-import re
 from fabric.widgets.box import Box
-from fabric.widgets.eventbox import EventBox  # <-- use our EventBox
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
-from fabric.widgets.circularprogressbar import CircularProgressBar
-from fabric.widgets.overlay import Overlay
-from fabric.widgets.revealer import Revealer
-from fabric.core.fabricator import Fabricator
 from fabric.utils.helpers import exec_shell_command_async
-
-from gi.repository import GLib
+import config.data as data
 
 import modules.icons as icons
+
 
 class Systemprofiles(Box):
     def __init__(self, **kwargs):
         super().__init__(
             name="systemprofiles",
-            orientation="h",
+            orientation="h" if not data.VERTICAL else "v",
             spacing=3,
         )
 
@@ -36,25 +29,28 @@ class Systemprofiles(Box):
         )
         self.bat_perf = Button(
             name="battery-performance",
-            child=Label(name="battery-performance-label", markup=icons.power_performance),
+            child=Label(
+                name="battery-performance-label", markup=icons.power_performance
+            ),
             on_clicked=lambda *_: self.set_power_mode("performance"),
         )
 
         # Attach mouse enter/leave events to buttons as well
 
         # Group the mode buttons into a container.
-        self.add(Box(
-            name="power-mode-switcher",
-            orientation="h",
-            spacing=4,
-            children=[self.bat_save, self.bat_balanced, self.bat_perf],
-        ))
+        self.add(
+            Box(
+                name="power-mode-switcher",
+                orientation="h" if not data.VERTICAL else "v",
+                spacing=4,
+                children=[self.bat_save, self.bat_balanced, self.bat_perf],
+            )
+        )
 
         self.get_current_power_mode()
         self.hide_timer = None
         self.hover_counter = 0
         # self.set_power_mode("balanced")
-
 
     def get_current_power_mode(self):
         try:
@@ -64,7 +60,7 @@ class Systemprofiles(Box):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                check=True
+                check=True,
             )
 
             # Get the output and strip unnecessary whitespace
@@ -86,8 +82,6 @@ class Systemprofiles(Box):
         except Exception as err:
             print(f"Error retrieving current power mode: {err}")
             self.current_mode = "balanced"
-
-
 
     def set_power_mode(self, mode):
         pass
