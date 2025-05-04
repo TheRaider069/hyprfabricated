@@ -1,9 +1,9 @@
 {
-	"version": "3.1.1",
+	"version": "3.3.0",
 	"changelog": [
-		"Full Config Gui Revamp",
-		"New Way of config fetching (easy to maintian)",
-		"Misc Bug Fixes",
-		"HotFix for new config methods"
+		"Many fixes and improvements",
+		"Added New Type of workspace indicator",
+		"Imporved Motions and smoothness",
+		"Bug fixes"
 	]
 }

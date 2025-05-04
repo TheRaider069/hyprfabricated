@@ -60,6 +60,7 @@ class WallpaperSelector(Box):
         self.viewport.set_text_column(-1)
         self.viewport.set_item_width(0)
         self.viewport.connect("item-activated", self.on_wallpaper_selected)
+        # self.viewport.connect("selection-changed", self._on_selection_changed) # Removed connection
 
         self.scrolled_window = ScrolledWindow(
             name="scrolled-window",
@@ -234,33 +235,88 @@ class WallpaperSelector(Box):
             return True
         return False
 
+    # Removed _on_selection_changed method
+
     def move_selection_2d(self, keyval):
         model = self.viewport.get_model()
         total_items = len(model)
         if total_items == 0:
             return
 
-        if self.selected_index == -1:
-            new_index = 0 if keyval in (Gdk.KEY_Down, Gdk.KEY_Right) else total_items - 1
-        else:
-            current_index = self.selected_index
-            allocation = self.viewport.get_allocation()
-            item_width = 108  # Approximate item width including margins
-            columns = max(1, allocation.width // item_width)
-            if keyval == Gdk.KEY_Right:
-                new_index = current_index + 1
-            elif keyval == Gdk.KEY_Left:
-                new_index = current_index - 1
-            elif keyval == Gdk.KEY_Down:
-                new_index = current_index + columns
-            elif keyval == Gdk.KEY_Up:
-                new_index = current_index - columns
-            if new_index < 0:
-                new_index = 0
-            if new_index >= total_items:
-                new_index = total_items - 1
+        # --- Determine Column Count ---
+        columns = self.viewport.get_columns()
 
-        self.update_selection(new_index)
+        # If get_columns returns 0 or -1 (auto), try to estimate by checking item rows
+        if columns <= 0 and total_items > 0:
+            estimated_cols = 0
+            try:
+                # Check the row of the first item (should be 0)
+                first_item_path = Gtk.TreePath.new_from_indices([0])
+                base_row = self.viewport.get_item_row(first_item_path)
+
+                # Find the index of the first item in the *next* row
+                for i in range(1, total_items):
+                    path = Gtk.TreePath.new_from_indices([i])
+                    row = self.viewport.get_item_row(path)
+                    if row > base_row:
+                        estimated_cols = i # The number of items in the first row
+                        break
+
+                # If loop finished without finding a new row, all items are in one row
+                if estimated_cols == 0:
+                    estimated_cols = total_items
+
+                columns = max(1, estimated_cols)
+            except Exception:
+                # Fallback if get_item_row fails (e.g., widget not realized)
+                columns = 1
+        elif columns <= 0 and total_items == 0:
+             columns = 1 # Should not happen due to early return, but safe
+
+        # Ensure columns is at least 1 after all checks
+        columns = max(1, columns)
+
+        # --- Navigation Logic ---
+        current_index = self.selected_index
+        new_index = current_index
+
+        if current_index == -1:
+            # If nothing is selected, select the first or last item based on direction
+            if keyval in (Gdk.KEY_Down, Gdk.KEY_Right):
+                new_index = 0
+            elif keyval in (Gdk.KEY_Up, Gdk.KEY_Left):
+                new_index = total_items - 1
+            if total_items == 0: new_index = -1 # Handle edge case
+
+        else:
+            # Calculate potential new index based on key press
+            if keyval == Gdk.KEY_Up:
+                potential_new_index = current_index - columns
+                # Only update if the new index is valid (>= 0)
+                if potential_new_index >= 0:
+                    new_index = potential_new_index
+            elif keyval == Gdk.KEY_Down:
+                potential_new_index = current_index + columns
+                # Only update if the new index is valid (< total_items)
+                if potential_new_index < total_items:
+                    new_index = potential_new_index
+            elif keyval == Gdk.KEY_Left:
+                # Only update if not already in the first column (index % columns != 0)
+                # and the index is greater than 0
+                if current_index > 0 and current_index % columns != 0:
+                    new_index = current_index - 1
+            elif keyval == Gdk.KEY_Right:
+                # Only update if not in the last column ((index + 1) % columns != 0)
+                # and not the very last item (index < total_items - 1)
+                if current_index < total_items - 1 and (current_index + 1) % columns != 0:
+                    new_index = current_index + 1
+
+        # Only update if the index actually changed and is valid
+        if new_index != self.selected_index and 0 <= new_index < total_items:
+             self.update_selection(new_index)
+        elif total_items > 0 and self.selected_index == -1 and 0 <= new_index < total_items:
+             # Handle selecting the first item when starting from -1
+             self.update_selection(new_index)
 
     def update_selection(self, new_index: int):
         self.viewport.unselect_all()

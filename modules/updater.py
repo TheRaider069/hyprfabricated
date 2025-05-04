@@ -6,8 +6,9 @@ import threading
 import gi
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import socket
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fabric.utils.helpers import get_relative_path
 import config.data as data
 
@@ -171,17 +172,20 @@ class UpdateWindow(Gtk.Window):
 
 # Check for updates
 
+
 def is_connected():
     try:
         # Connect to the host -- tells us if the host is actually reachable
         print("Checking internet connection...")
         socket.create_connection(("www.google.com", 80))
+        print("Internet connection is available.")
         return True
     except OSError:
         pass
 
     print("No internet connection.")
     return False
+
 
 def check_for_updates():
     if not is_connected():

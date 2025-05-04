@@ -30,6 +30,10 @@ WALLPAPERS_DIR_DEFAULT = get_relative_path("../assets/wallpapers_example")
 CONFIG_FILE = os.path.expanduser(f"~/.config/{APP_NAME_CAP}/config/config.json")
 
 
+# Default value for the new setting
+BAR_WORKSPACE_USE_CHINESE_NUMERALS = False
+
+
 def load_config():
     """Load the configuration from config.json"""
     config_path = os.path.expanduser(f"~/.config/{APP_NAME_CAP}/config/config.json")
@@ -60,12 +64,18 @@ if os.path.exists(CONFIG_FILE):
     )  # Load dock hover-only setting
     DOCK_ICON_SIZE = config.get("dock_icon_size", 28)  # Load dock icon size setting
     UPDATER = config.get("misc_updater", True)
-    OTHERPLAYERS = config.get("misc_otherplayers_visible", False)
+    OTHERPLAYERS = config.get("misc_otherplayers", False)
 
     DESKTOP_WIDGETS = config.get("bar_desktop_widgets_visible", True)
     WEATHER_FORMAT = config.get("widgets_weather_format", "C")
     WEATHER_LOCATION = config.get("widgets_weather_location", "")
     QUOTE_TYPE = config.get("widgets_quotetype", "stoic")
+    BAR_WORKSPACE_SHOW_NUMBER = config.get(
+        "bar_workspace_show_number", False
+    )  # Load workspace number visibility
+    BAR_WORKSPACE_USE_CHINESE_NUMERALS = config.get(
+        "bar_workspace_use_chinese_numerals", False
+    )  # Load Chinese numeral setting
     # Load bar component visibility settings
     BAR_COMPONENTS_VISIBILITY = {
         "button_apps": config.get("bar_button_apps_visible", True),
@@ -90,6 +100,14 @@ if os.path.exists(CONFIG_FILE):
         "weatherwid": config.get("widgets_weather_visible", True),
         "sysinfo": config.get("widgets_sysinfo_visible", True),
     }
+
+    BAR_METRICS_DISKS = config.get("bar_metrics_disks", ["/"])
+    METRICS_VISIBLE = config.get(
+        "metrics_visible", {"cpu": True, "ram": True, "disk": True, "gpu": True}
+    )
+    METRICS_SMALL_VISIBLE = config.get(
+        "metrics_small_visible", {"cpu": True, "ram": True, "disk": True, "gpu": True}
+    )
 else:
     WALLPAPERS_DIR = WALLPAPERS_DIR_DEFAULT
     VERTICAL = False  # Default value when no config exists
@@ -105,6 +123,9 @@ else:
     WEATHER_LOCATION = ""
 
     QUOTE_TYPE = "stoic"
+    BAR_WORKSPACE_SHOW_NUMBER = False  # Default workspace number visibility
+    BAR_WORKSPACE_USE_CHINESE_NUMERALS = False  # Default Chinese numeral setting
+
     # Default values for component visibility (all visible)
     BAR_COMPONENTS_VISIBILITY = {
         "button_apps": True,
@@ -129,3 +150,7 @@ else:
         "sysinfo": True,
         "sysprofiles": False,
     }
+
+    BAR_METRICS_DISKS = ["/"]
+    METRICS_VISIBLE = {"cpu": True, "ram": True, "disk": True, "gpu": True}
+    METRICS_SMALL_VISIBLE = {"cpu": True, "ram": True, "disk": True, "gpu": True}

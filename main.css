@@ -35,3 +35,12 @@
 menu > menuitem > label {
   font-weight: bold;
 }
+#applet-stack,
+#calendar,
+#header,
+#player,
+#metrics,
+#pin-cell-box,
+#kanban-header {
+  background-color: alpha(black, 0.5);
+}

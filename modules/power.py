@@ -4,6 +4,7 @@ from fabric.widgets.button import Button
 from fabric.utils.helpers import exec_shell_command_async
 import modules.icons as icons
 
+
 class PowerMenu(Box):
     def __init__(self, **kwargs):
         super().__init__(
@@ -97,7 +98,7 @@ class PowerMenu(Box):
 
     def logout(self, *args):
         print("Logging out...")
-        exec_shell_command_async("hyprctl dispatch exit")
+        exec_shell_command_async("bash -c 'loginctl kill-session $XDG_SESSION_ID'")
         self.close_menu()
 
     def reboot(self, *args):

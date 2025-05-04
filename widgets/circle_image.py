@@ -1,8 +1,6 @@
 import math
 from typing import Literal
 
-import tempfile
-from PIL import Image
 import cairo
 import gi
 from fabric.core.service import Property
@@ -34,8 +32,12 @@ class CircleImage(Gtk.DrawingArea, Widget):
         style: str | None = None,
         tooltip_text: str | None = None,
         tooltip_markup: str | None = None,
-        h_align: Literal["fill", "start", "end", "center", "baseline"] | Gtk.Align | None = None,
-        v_align: Literal["fill", "start", "end", "center", "baseline"] | Gtk.Align | None = None,
+        h_align: (
+            Literal["fill", "start", "end", "center", "baseline"] | Gtk.Align | None
+        ) = None,
+        v_align: (
+            Literal["fill", "start", "end", "center", "baseline"] | Gtk.Align | None
+        ) = None,
         h_expand: bool = False,
         v_expand: bool = False,
         size: int | None = None,
@@ -59,7 +61,9 @@ class CircleImage(Gtk.DrawingArea, Widget):
         )
         self.size = size if size is not None else 100  # Default size if not provided
         self._angle = 0
-        self._orig_image: GdkPixbuf.Pixbuf | None = None  # Original image for reprocessing
+        self._orig_image: GdkPixbuf.Pixbuf | None = (
+            None  # Original image for reprocessing
+        )
         self._image: GdkPixbuf.Pixbuf | None = None
         if image_file:
             pix = GdkPixbuf.Pixbuf.new_from_file(image_file)
@@ -81,7 +85,9 @@ class CircleImage(Gtk.DrawingArea, Widget):
         else:
             square_size = width
         if square_size != self.size:
-            pixbuf = pixbuf.scale_simple(self.size, self.size, GdkPixbuf.InterpType.BILINEAR)
+            pixbuf = pixbuf.scale_simple(
+                self.size, self.size, GdkPixbuf.InterpType.BILINEAR
+            )
         return pixbuf
 
     def on_draw(self, widget: "CircleImage", ctx: cairo.Context):
@@ -98,31 +104,13 @@ class CircleImage(Gtk.DrawingArea, Widget):
             ctx.paint()
             ctx.restore()
 
-    def convert_to_png(self,image_path):
-        """Convert an image to PNG if it's not already in a compatible format."""
-        try:
-            with Image.open(image_path) as img:
-                new_path = tempfile.mktemp(suffix=".png")  # Create a temp PNG file
-                img.save(new_path, format="PNG")
-            return new_path
-        except Exception as e:
-            print(f"Failed to convert image: {e}")
-            return image_path  # Return original if conversion fails
-
     def set_image_from_file(self, new_image_file: str):
         if not new_image_file:
             return
-
-        # Convert the file to PNG if necessary
-        new_image_file = self.convert_to_png(new_image_file)
-
-        try:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(new_image_file)
-            self._orig_image = pixbuf
-            self._image = self._process_image(pixbuf)
-            self.queue_draw()
-        except Exception as e:
-            print(f"Failed to load image: {e}")
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(new_image_file)
+        self._orig_image = pixbuf
+        self._image = self._process_image(pixbuf)
+        self.queue_draw()
 
     def set_image_from_pixbuf(self, pixbuf: GdkPixbuf.Pixbuf):
         if not pixbuf:
@@ -136,4 +124,3 @@ class CircleImage(Gtk.DrawingArea, Widget):
         if self._orig_image:
             self._image = self._process_image(self._orig_image)
         self.queue_draw()
-

@@ -1,14 +1,14 @@
 import subprocess
-import os
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
 from fabric.widgets.button import Button
 from fabric.widgets.entry import Entry
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from fabric.utils import idle_add, remove_handler, exec_shell_command_async
+from fabric.utils import remove_handler, exec_shell_command_async
 from gi.repository import GLib, Gdk, Gtk
 import modules.icons as icons
 import config.data as data
+
 
 class TmuxManager(Box):
     def __init__(self, **kwargs):
@@ -50,14 +50,16 @@ class TmuxManager(Box):
                     name="new-session-button",
                     child=Label(name="new-session-label", markup=icons.add),
                     tooltip_text="Create New Session",
-                    on_clicked=lambda *_: self.create_session(self.session_name_entry.get_text()),
+                    on_clicked=lambda *_: self.create_session(
+                        self.session_name_entry.get_text()
+                    ),
                 ),
                 self.session_name_entry,
                 Button(
                     name="close-button",
                     child=Label(name="close-label", markup=icons.cancel),
                     tooltip_text="Exit",
-                    on_clicked=lambda *_: self.close_manager()
+                    on_clicked=lambda *_: self.close_manager(),
                 ),
             ],
         )
@@ -104,9 +106,9 @@ class TmuxManager(Box):
                 h_align="center",
                 v_align="center",
                 h_expand=True,
-                v_expand=True
+                v_expand=True,
             )
-            
+
             # Show a message if no sessions
             label = Label(
                 name="no-tmux",
@@ -114,9 +116,9 @@ class TmuxManager(Box):
                 h_align="center",
                 v_align="center",
             )
-            
+
             container.add(label)
-            
+
             self.viewport.add(container)
             return
 
@@ -130,10 +132,12 @@ class TmuxManager(Box):
             result = subprocess.run(
                 ["tmux", "list-sessions", "-F", "#{session_name}"],
                 capture_output=True,
-                text=True
+                text=True,
             )
             if result.returncode == 0:
-                return [s.strip() for s in result.stdout.strip().split('\n') if s.strip()]
+                return [
+                    s.strip() for s in result.stdout.strip().split("\n") if s.strip()
+                ]
             return []
         except Exception as e:
             print(f"Error getting tmux sessions: {e}")
@@ -146,10 +150,12 @@ class TmuxManager(Box):
             name="session-name-entry",
             text=session_name,
             visible=False,
-            on_activate=lambda entry, *_: self.finish_rename(button, session_name, entry),
+            on_activate=lambda entry, *_: self.finish_rename(
+                button, session_name, entry
+            ),
             on_key_press_event=self.on_rename_key_press,
         )
-        
+
         # Create the label showing the session name
         name_label = Label(
             name="app-label",
@@ -158,7 +164,7 @@ class TmuxManager(Box):
             v_align="center",
             h_align="center",
         )
-        
+
         # Session slot content box
         slot_box = Box(
             name="slot-box",
@@ -173,7 +179,7 @@ class TmuxManager(Box):
                 name_entry,
             ],
         )
-        
+
         button = Button(
             name="slot-button",  # reuse existing CSS styling
             child=slot_box,
@@ -181,18 +187,30 @@ class TmuxManager(Box):
             on_clicked=lambda *_: self.attach_to_session(session_name),
             can_focus=True,  # Ensure the button can receive focus
         )
-        
+
         # Add double-click handler to start renaming
-        button.connect("button-press-event", self.on_session_click, session_name, name_label, name_entry)
-        
+        button.connect(
+            "button-press-event",
+            self.on_session_click,
+            session_name,
+            name_label,
+            name_entry,
+        )
+
         # Add key press handler for 'r' to rename
-        button.connect("key-press-event", self.on_slot_key_press, session_name, name_label, name_entry)
-        
+        button.connect(
+            "key-press-event",
+            self.on_slot_key_press,
+            session_name,
+            name_label,
+            name_entry,
+        )
+
         # Store reference to entry and label in button for later access
         button.name_entry = name_entry
         button.name_label = name_label
         button.session_name = session_name
-        
+
         return button
 
     def on_session_click(self, button, event, session_name, label, entry):
@@ -204,59 +222,62 @@ class TmuxManager(Box):
         # Handle right click for context menu
         elif event.button == 3:
             menu = Gtk.Menu()
-            
+
             # Rename option
             rename_item = Gtk.MenuItem(label="Rename")
-            rename_item.connect("activate", lambda _: self.start_rename(button, session_name, label, entry))
+            rename_item.connect(
+                "activate",
+                lambda _: self.start_rename(button, session_name, label, entry),
+            )
             menu.append(rename_item)
-            
+
             # Kill option
             kill_item = Gtk.MenuItem(label="Kill Session")
             kill_item.connect("activate", lambda _: self.kill_session(session_name))
             menu.append(kill_item)
-            
+
             menu.show_all()
             menu.popup_at_pointer(event)
             return True
-        
+
         return False
-    
+
     def start_rename(self, button, session_name, label, entry):
         """Start inline renaming of a session"""
         # Hide label, show entry
         label.set_visible(False)
         entry.set_visible(True)
-        
+
         # Focus entry and select all text
         entry.grab_focus()
         entry.select_region(0, -1)
-        
+
         # Mark button as being edited
         button.get_style_context().add_class("editing")
 
     def finish_rename(self, button, old_name, entry):
         """Finish renaming a session"""
         new_name = entry.get_text().strip()
-        
+
         # Only rename if the name changed and isn't empty
         if new_name and new_name != old_name:
             self.rename_session(old_name, new_name)
-        
+
         # Reset UI state
         self.cancel_rename(button)
-    
+
     def cancel_rename(self, button):
         """Cancel renaming operation"""
         # Restore original view
         button.name_entry.set_visible(False)
         button.name_label.set_visible(True)
-        
+
         # Remove editing style
         button.get_style_context().remove_class("editing")
-        
+
         # Return focus to session name entry
         self.session_name_entry.grab_focus()
-    
+
     def on_rename_key_press(self, entry, event):
         """Handle key presses in the rename entry"""
         if event.keyval == Gdk.KEY_Escape:
@@ -264,37 +285,37 @@ class TmuxManager(Box):
             parent = entry.get_parent()
             while parent and not isinstance(parent, Button):
                 parent = parent.get_parent()
-            
+
             if parent:
                 self.cancel_rename(parent)
             return True
-        
+
         return False
 
     def on_session_right_click(self, button, event, session_name):
         """Handle right-click on a session button to show context menu"""
         if event.button == 3:  # Right click
             menu = Gtk.Menu()
-            
+
             # Rename option
             rename_item = Gtk.MenuItem(label="Rename")
-            rename_item.connect("activate", lambda _: self.start_rename(
-                button, 
-                session_name, 
-                button.name_label, 
-                button.name_entry
-            ))
+            rename_item.connect(
+                "activate",
+                lambda _: self.start_rename(
+                    button, session_name, button.name_label, button.name_entry
+                ),
+            )
             menu.append(rename_item)
-            
+
             # Kill option
             kill_item = Gtk.MenuItem(label="Kill Session")
             kill_item.connect("activate", lambda _: self.kill_session(session_name))
             menu.append(kill_item)
-            
+
             menu.show_all()
             menu.popup_at_pointer(event)
             return True
-        
+
         return False
 
     def on_entry_key_press(self, widget, event):
@@ -302,12 +323,13 @@ class TmuxManager(Box):
         if event.keyval == Gdk.KEY_Escape:
             self.close_manager()
             return True
-        
+
         # Custom navigation with UP/DOWN keys removed
         return False
 
     def scroll_to_selected(self, button):
         """Scroll to ensure the selected button is visible"""
+
         def scroll():
             adj = self.scrolled_window.get_vadjustment()
             alloc = button.get_allocation()
@@ -332,6 +354,7 @@ class TmuxManager(Box):
                 adj.set_value(new_value)
             # No action if already fully visible
             return False
+
         GLib.idle_add(scroll)
 
     def create_session(self, session_name):
@@ -339,37 +362,38 @@ class TmuxManager(Box):
         if not session_name:
             # Get existing session names
             existing_sessions = self.get_tmux_sessions()
-            
+
             # Find the next available number
             counter = 0
             while str(counter) in existing_sessions:
                 counter += 1
-                
+
             session_name = str(counter)
-            
+
         try:
             # Clean the session name (replace spaces with underscores)
             clean_name = session_name.strip().replace(" ", "_")
-            
+
             # Create session
             subprocess.run(
-                ["tmux", "new-session", "-d", "-s", clean_name],
-                check=True
+                ["tmux", "-u", "new-session", "-d", "-s", clean_name], check=True
             )
-            
+
             # Refresh the session list
             self.refresh_sessions()
-            
+
             # Clear entry
             self.session_name_entry.set_text("")
-            
+
             # Launch a terminal and attach to this session
-            terminal_cmd = self.get_terminal_command(f"tmux attach-session -t {clean_name}")
+            terminal_cmd = self.get_terminal_command(
+                f"tmux -u attach-session -t {clean_name}"
+            )
             exec_shell_command_async(terminal_cmd)
-            
+
             # Close manager
             self.close_manager()
-            
+
         except Exception as e:
             print(f"Error creating tmux session: {e}")
 
@@ -377,7 +401,9 @@ class TmuxManager(Box):
         """Attach to an existing tmux session"""
         try:
             # Launch a terminal and attach to this session
-            terminal_cmd = self.get_terminal_command(f"tmux attach-session -t {session_name}")
+            terminal_cmd = self.get_terminal_command(
+                f"tmux -u attach-session -t {session_name}"
+            )
             exec_shell_command_async(terminal_cmd)
             self.close_manager()
         except Exception as e:
@@ -386,67 +412,73 @@ class TmuxManager(Box):
     def get_terminal_command(self, cmd):
         """Get terminal command based on configured terminal or available terminals"""
         # First try to use the configured terminal command
-        if hasattr(data, 'TERMINAL_COMMAND') and data.TERMINAL_COMMAND:
+        if hasattr(data, "TERMINAL_COMMAND") and data.TERMINAL_COMMAND:
             parts = data.TERMINAL_COMMAND.split()
             terminal = parts[0]
-            
+
             try:
                 # Check if the configured terminal is available
-                subprocess.run(["which", terminal], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                subprocess.run(
+                    ["which", terminal],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
                 return f"{data.TERMINAL_COMMAND} {cmd}"
             except subprocess.CalledProcessError:
                 # If configured terminal is not available, fall back to defaults
                 pass
-                
+
         # Fallback to checking available terminals
         terminals = [
             ("kitty", f"kitty -e {cmd}"),
             ("alacritty", f"alacritty -e {cmd}"),
+            ("ghostty", f"ghostty -e {cmd}"),
             ("foot", f"foot {cmd}"),
             ("gnome-terminal", f"gnome-terminal -- {cmd}"),
             ("konsole", f"konsole -e {cmd}"),
             ("xfce4-terminal", f"xfce4-terminal -e '{cmd}'"),
         ]
-        
+
         for term, term_cmd in terminals:
             try:
                 # Check if terminal is available
-                subprocess.run(["which", term], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                subprocess.run(
+                    ["which", term],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
                 return term_cmd
             except subprocess.CalledProcessError:
                 continue
-                
+
         # Default fallback
         return f"kitty -e {cmd}"
 
     def rename_session_dialog(self, old_name):
         """Show dialog to rename a session"""
-        dialog = Gtk.Dialog(
-            title="Rename Session",
-            transient_for=None,
-            flags=0
-        )
-        
+        dialog = Gtk.Dialog(title="Rename Session", transient_for=None, flags=0)
+
         dialog.add_buttons(
-            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OK, Gtk.ResponseType.OK
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK
         )
-        
+
         content_area = dialog.get_content_area()
         entry = Gtk.Entry()
         entry.set_text(old_name)
         entry.set_activates_default(True)
         content_area.add(entry)
-        
+
         dialog.set_default_response(Gtk.ResponseType.OK)
         dialog.show_all()
-        
+
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             new_name = entry.get_text()
             if new_name and new_name != old_name:
                 self.rename_session(old_name, new_name)
-                
+
         dialog.destroy()
 
     def rename_session(self, old_name, new_name):
@@ -454,16 +486,15 @@ class TmuxManager(Box):
         try:
             # Clean the session name (replace spaces with underscores)
             clean_name = new_name.strip().replace(" ", "_")
-            
+
             # Rename session
             subprocess.run(
-                ["tmux", "rename-session", "-t", old_name, clean_name],
-                check=True
+                ["tmux", "rename-session", "-t", old_name, clean_name], check=True
             )
-            
+
             # Refresh the session list
             self.refresh_sessions()
-            
+
         except Exception as e:
             print(f"Error renaming tmux session: {e}")
 
@@ -471,17 +502,14 @@ class TmuxManager(Box):
         """Kill a tmux session"""
         try:
             # Kill session
-            subprocess.run(
-                ["tmux", "kill-session", "-t", session_name],
-                check=True
-            )
-            
+            subprocess.run(["tmux", "kill-session", "-t", session_name], check=True)
+
             # Refresh the session list
             self.refresh_sessions()
-            
+
             # Close the notch after killing session
             self.close_manager()
-            
+
         except Exception as e:
             print(f"Error killing tmux session: {e}")
 
@@ -490,7 +518,7 @@ class TmuxManager(Box):
         """Handle key presses on session buttons"""
         # Print debugging info
         print(f"Key pressed: {event.keyval}, State: {event.state}")
-        
+
         # Check if 'r' key was pressed for renaming
         if event.keyval == Gdk.KEY_r:
             self.start_rename(button, session_name, label, entry)
@@ -510,36 +538,33 @@ class TmuxManager(Box):
             self.show_kill_confirmation_menu(button, session_name)
             return True
         return False
-    
+
     def show_kill_confirmation_menu(self, button, session_name):
         """Show a confirmation menu for killing a session"""
         menu = Gtk.Menu()
-        
+
         # Confirmation message as a disabled menu item
         msg_item = Gtk.MenuItem(label=f"Kill session '{session_name}'?")
         msg_item.set_sensitive(False)
         menu.append(msg_item)
-        
+
         # Separator
         menu.append(Gtk.SeparatorMenuItem())
-        
+
         # Confirm option
         confirm_item = Gtk.MenuItem(label="Confirm")
         confirm_item.connect("activate", lambda _: self.kill_session(session_name))
         menu.append(confirm_item)
-        
+
         # Cancel option
         cancel_item = Gtk.MenuItem(label="Cancel")
         # Close notch on cancel
         cancel_item.connect("activate", lambda _: self.close_manager())
         menu.append(cancel_item)
-        
+
         menu.show_all()
-        
+
         # Show the menu positioned at the button
         menu.popup_at_widget(
-            button,
-            Gdk.Gravity.SOUTH_WEST,
-            Gdk.Gravity.NORTH_WEST,
-            None
+            button, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None
         )

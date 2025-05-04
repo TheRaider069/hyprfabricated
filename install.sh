@@ -20,9 +20,11 @@ PACKAGES=(
     hyprsunset
     imagemagick
     libnotify
+    hyprshot
     matugen-bin
     noto-fonts-emoji
     playerctl
+    python-numpy
     python-fabric-git
     python-ijson
     python-pillow
@@ -43,6 +45,8 @@ PACKAGES=(
     unzip
     tmux
     cliphist
+    webp-pixbuf-loader
+    nvtop
 )
 
 # Prevent running as root

@@ -5,6 +5,7 @@ import tempfile
 from gi.repository import Gtk, GLib, Gio, Gdk
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
+import config.data as data
 from fabric.widgets.label import Label
 from fabric.widgets.button import Button
 from fabric.widgets.circularprogressbar import CircularProgressBar
@@ -12,11 +13,12 @@ from fabric.widgets.overlay import Overlay
 from fabric.widgets.stack import Stack
 from widgets.circle_image import CircleImage
 import modules.icons as icons
-import config.data as data
 from services.mpris import MprisPlayerManager, MprisPlayer
 from fabric.utils.helpers import get_relative_path
-from gi.repository import GdkPixbuf, Gio
 from modules.cavalcade import SpectrumRender
+
+WALL_EXIST = os.path.exists(os.path.expanduser("~/.current.wall"))
+
 
 def get_player_icon_markup_by_name(player_name):
     if player_name:
@@ -29,20 +31,31 @@ def get_player_icon_markup_by_name(player_name):
             return icons.chromium
     return icons.disc
 
+
 def add_hover_cursor(widget):
     widget.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK)
-    widget.connect("enter-notify-event", lambda w, event: w.get_window().set_cursor(
-        Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer")))
-    widget.connect("leave-notify-event", lambda w, event: w.get_window().set_cursor(None))
+    widget.connect(
+        "enter-notify-event",
+        lambda w, event: w.get_window().set_cursor(
+            Gdk.Cursor.new_from_name(Gdk.Display.get_default(), "pointer")
+        ),
+    )
+    widget.connect(
+        "leave-notify-event", lambda w, event: w.get_window().set_cursor(None)
+    )
+
 
 class PlayerBox(Box):
     def __init__(self, mpris_player=None):
-        super().__init__(orientation="v", h_align="fill", spacing=0, h_expand=False, v_expand=True)
+        super().__init__(
+            orientation="v", h_align="fill", spacing=0, h_expand=False, v_expand=True
+        )
         self.mpris_player = mpris_player
+        self._progress_timer_id = None  # Initialize timer ID
 
-        image_file = get_relative_path("../assets/icons/player.png")
-        # if not os.path.exists(image_file):
-        #     image_file = f"{data.HOME_DIR}/.config/hyprfabricated/assets/wallpapers_example/example-1.jpg"
+        image_file = f"{data.HOME_DIR}/.current.wall"
+        if not WALL_EXIST:
+            image_file = get_relative_path("../assets/icons/player.png")
         self.cover = CircleImage(
             name="player-cover",
             image_file=image_file,
@@ -56,9 +69,9 @@ class PlayerBox(Box):
             h_align="center",
             v_align="center",
         )
-        self.title = Label(name="player-title", ellipsization="end")
-        self.album = Label(name="player-album", ellipsization="end")
-        self.artist = Label(name="player-artist", ellipsization="end")
+        self.title = Label(name="player-title", h_expand=True, h_align="fill", ellipsization="end", max_chars_width=1)
+        self.album = Label(name="player-album", h_expand=True, h_align="fill", ellipsization="end", max_chars_width=1)
+        self.artist = Label(name="player-artist", h_expand=True, h_align="fill", ellipsization="end", max_chars_width=1)
         self.progressbar = CircularProgressBar(
             name="player-progress",
             size=198,
@@ -72,7 +85,9 @@ class PlayerBox(Box):
             child=self.cover_placerholder,
             overlays=[self.progressbar, self.cover],
         )
-        self.overlay_container = CenterBox(name="player-overlay", center_children=[self.overlay])
+        self.overlay_container = CenterBox(
+            name="player-overlay", center_children=[self.overlay]
+        )
         self.title.set_label("Nothing Playing")
         self.album.set_label("Enjoy the silence")
         self.artist.set_label("¯\\_(ツ)_/¯")
@@ -118,14 +133,14 @@ class PlayerBox(Box):
                         self.play_pause,
                         self.forward,
                         self.next,
-                    ]
+                    ],
                 )
-            ]
+            ],
         )
         self.player_box = Box(
             name="player-box",
             orientation="v",
-            spacing=4,
+            spacing=8,
             children=[
                 self.overlay_container,
                 self.title,
@@ -133,21 +148,26 @@ class PlayerBox(Box):
                 self.artist,
                 self.btn_box,
                 self.time,
-            ]
+            ],
         )
         self.add(self.player_box)
         if mpris_player:
-            self._apply_mpris_properties()
+            self._apply_mpris_properties()  # This will handle starting the timer if needed
             self.prev.connect("clicked", self._on_prev_clicked)
             self.play_pause.connect("clicked", self._on_play_pause_clicked)
             self.backward.connect("clicked", self._on_backward_clicked)
             self.forward.connect("clicked", self._on_forward_clicked)
             self.next.connect("clicked", self._on_next_clicked)
-            if mpris_player.can_seek:
-                GLib.timeout_add(1000, self._update_progress)
             self.mpris_player.connect("changed", self._on_mpris_changed)
         else:
             self.play_pause.get_child().set_markup(icons.stop)
+            # Ensure buttons are disabled visually if no player
+            self.backward.add_style_class("disabled")
+            self.forward.add_style_class("disabled")
+            self.prev.add_style_class("disabled")
+            self.next.add_style_class("disabled")
+            self.progressbar.set_value(0.0)
+            self.time.set_text("--:-- / --:--")
 
     def _apply_mpris_properties(self):
         mp = self.mpris_player
@@ -166,40 +186,87 @@ class PlayerBox(Box):
                 local_arturl = urllib.parse.unquote(parsed.path)
                 self._set_cover_image(local_arturl)
             elif parsed.scheme in ("http", "https"):
-                GLib.Thread.new("download-artwork", self._download_and_set_artwork, mp.arturl)
+                GLib.Thread.new(
+                    "download-artwork", self._download_and_set_artwork, mp.arturl
+                )
             else:
                 self._set_cover_image(mp.arturl)
         else:
-            fallback = get_relative_path("../assets/icons/player.png")
+
+            fallback = f"{data.HOME_DIR}/.current.wall"
+            if not WALL_EXIST:
+                fallback = get_relative_path("../assets/icons/player.png")
             self._set_cover_image(fallback)
             file_obj = Gio.File.new_for_path(fallback)
             monitor = file_obj.monitor_file(Gio.FileMonitorFlags.NONE, None)
             monitor.connect("changed", self.on_wallpaper_changed)
             self._wallpaper_monitor = monitor
         self.update_play_pause_icon()
+        # Keep progress bar and time visible always
         self.progressbar.set_visible(True)
         self.time.set_visible(True)
-        player_name = mp.player_name.lower() if hasattr(mp, "player_name") and mp.player_name else ""
-        if player_name == "firefox" or (hasattr(mp, "can_seek") and not mp.can_seek):
-            self.progressbar.set_visible(False)
-            self.time.set_visible(False)
-            self.backward.set_visible(False)
-            self.forward.set_visible(False)
+
+        player_name = (
+            mp.player_name.lower()
+            if hasattr(mp, "player_name") and mp.player_name
+            else ""
+        )
+        can_seek = hasattr(mp, "can_seek") and mp.can_seek
+
+        if player_name == "firefox" or not can_seek:
+            # Disable seeking buttons and reset progress/time display
+            self.backward.add_style_class("disabled")
+            self.forward.add_style_class("disabled")
+            self.progressbar.set_value(0.0)
+            self.time.set_text("--:-- / --:--")
+            # Stop the timer if it's running
+            if self._progress_timer_id:
+                GLib.source_remove(self._progress_timer_id)
+                self._progress_timer_id = None
         else:
-            self.backward.set_visible(True)
-            self.forward.set_visible(True)
+            # Enable seeking buttons
+            self.backward.remove_style_class("disabled")
+            self.forward.remove_style_class("disabled")
+            # Start the timer if it's not already running
+            if not self._progress_timer_id:
+                self._progress_timer_id = GLib.timeout_add(1000, self._update_progress)
+            # Initial progress update if possible
+            self._update_progress()  # Call once for immediate update
+
+        # Enable/disable prev/next based on capabilities
+        if hasattr(mp, "can_go_previous") and mp.can_go_previous:
+            self.prev.remove_style_class("disabled")
+        else:
+            self.prev.add_style_class("disabled")
+
+        if hasattr(mp, "can_go_next") and mp.can_go_next:
+            self.next.remove_style_class("disabled")
+        else:
+            self.next.add_style_class("disabled")
 
     def _set_cover_image(self, image_path):
 
         def is_image(file_path):
-            valid_extensions = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff"}
-            return os.path.isfile(file_path) and os.path.splitext(file_path)[1].lower() in valid_extensions
-
+            valid_extensions = {
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".gif",
+                ".bmp",
+                ".webp",
+                ".tiff",
+            }
+            return (
+                os.path.isfile(file_path)
+                and os.path.splitext(file_path)[1].lower() in valid_extensions
+            )
 
         if image_path and os.path.isfile(image_path) and is_image(image_path):
             self.cover.set_image_from_file(image_path)
         else:
-            fallback = get_relative_path("../assets/icons/player.png")
+            fallback = f"{data.HOME_DIR}/.current.wall"
+            if not WALL_EXIST:
+                fallback = get_relative_path("../assets/icons/player.png")
             self.cover.set_image_from_file(fallback)
             file_obj = Gio.File.new_for_path(fallback)
             monitor = file_obj.monitor_file(Gio.FileMonitorFlags.NONE, None)
@@ -221,7 +288,9 @@ class PlayerBox(Box):
             temp_file.close()
             local_arturl = temp_file.name
         except Exception:
-            local_arturl = get_relative_path("../assets/icons/player.png")
+            local_arturl = f"{data.HOME_DIR}/.current.wall"
+            if not WALL_EXIST:
+                local_arturl = get_relative_path("../assets/icons/player.png")
         GLib.idle_add(self._set_cover_image, local_arturl)
         return None
 
@@ -232,7 +301,12 @@ class PlayerBox(Box):
             self.play_pause.get_child().set_markup(icons.play)
 
     def on_wallpaper_changed(self, monitor, file, other_file, event):
-        self.cover.set_image_from_file(get_relative_path("../assets/icons/player.png"))
+        if not WALL_EXIST:
+            self.cover.set_image_from_file(
+                get_relative_path("../assets/icons/player.png")
+            )
+        else:
+            self.cover.set_image_from_file(os.path.expanduser("~/.current.wall"))
 
     # --- Control methods, defined only once each ---
     def _on_prev_clicked(self, button):
@@ -245,12 +319,22 @@ class PlayerBox(Box):
             self.update_play_pause_icon()
 
     def _on_backward_clicked(self, button):
-        if self.mpris_player and self.mpris_player.can_seek:
+        # Only seek if player exists, can seek, and button is not disabled
+        if (
+            self.mpris_player
+            and self.mpris_player.can_seek
+            and "disabled" not in self.backward.get_style_context().list_classes()
+        ):
             new_pos = max(0, self.mpris_player.position - 5000000)  # 5 seconds backward
             self.mpris_player.position = new_pos
 
     def _on_forward_clicked(self, button):
-        if self.mpris_player and self.mpris_player.can_seek:
+        # Only seek if player exists, can seek, and button is not disabled
+        if (
+            self.mpris_player
+            and self.mpris_player.can_seek
+            and "disabled" not in self.forward.get_style_context().list_classes()
+        ):
             new_pos = self.mpris_player.position + 5000000  # 5 seconds forward
             self.mpris_player.position = new_pos
 
@@ -259,8 +343,14 @@ class PlayerBox(Box):
             self.mpris_player.next()
 
     def _update_progress(self):
-        if not self.mpris_player:
-            return False
+        # Timer is now only active if can_seek is true, so no need for the initial check
+        if not self.mpris_player:  # Still need to check if player exists
+            # Should not happen if timer logic is correct, but good safeguard
+            if self._progress_timer_id:
+                GLib.source_remove(self._progress_timer_id)
+                self._progress_timer_id = None
+            return False  # Stop timer
+
         try:
             current = self.mpris_player.position
         except Exception:
@@ -269,10 +359,20 @@ class PlayerBox(Box):
             total = int(self.mpris_player.length or 0)
         except Exception:
             total = 0
-        progress = (current / total) if total > 0 else 0
+
+        # Prevent division by zero or invalid updates
+        if total <= 0:
+            progress = 0.0
+            self.time.set_text("--:-- / --:--")
+            # Don't stop the timer here, length might become available later
+        else:
+            progress = current / total
+            self.time.set_text(
+                f"{self._format_time(current)} / {self._format_time(total)}"
+            )
+
         self.progressbar.set_value(progress)
-        self.time.set_text(f"{self._format_time(current)} / {self._format_time(total)}")
-        return True
+        return True  # Continue the timer
 
     def _format_time(self, us):
         seconds = int(us / 1000000)
@@ -290,16 +390,32 @@ class PlayerBox(Box):
         # Debounce metadata updates to avoid excessive work on the main thread.
         if not hasattr(self, "_update_pending") or not self._update_pending:
             self._update_pending = True
-            GLib.timeout_add(100, self._apply_mpris_properties_debounced)
+            # Use idle_add for potentially faster UI response than timeout_add(100)
+            GLib.idle_add(self._apply_mpris_properties_debounced)
 
     def _apply_mpris_properties_debounced(self):
-        self._apply_mpris_properties()
+        # Ensure player still exists before applying properties
+        if self.mpris_player:
+            self._apply_mpris_properties()
+        else:
+            # Player vanished, ensure timer is stopped if it was running
+            if self._progress_timer_id:
+                GLib.source_remove(self._progress_timer_id)
+                self._progress_timer_id = None
         self._update_pending = False
         return False
 
+
 class Player(Box):
     def __init__(self):
-        super().__init__(name="player", orientation="v", h_align="fill", spacing=0, h_expand=False, v_expand=True)
+        super().__init__(
+            name="player",
+            orientation="v",
+            h_align="fill",
+            spacing=0,
+            h_expand=False,
+            v_expand=True,
+        )
         self.player_stack = Stack(
             name="player-stack",
             transition_type="slide-left-right",
@@ -337,17 +453,24 @@ class Player(Box):
         mp = MprisPlayer(player)
         pb = PlayerBox(mpris_player=mp)
         self.player_stack.add_titled(pb, mp.player_name, mp.player_name)
-        GLib.timeout_add(1000, pb._update_progress)
+        # Timer is now started conditionally within PlayerBox.__init__
         self.switcher.set_visible(True)
         GLib.idle_add(lambda: self._update_switcher_for_player(mp.player_name))
         GLib.idle_add(self._replace_switcher_labels)
 
     def on_player_vanished(self, manager, player_name):
         for child in self.player_stack.get_children():
-            if hasattr(child, "mpris_player") and child.mpris_player and child.mpris_player.player_name == player_name:
+            if (
+                hasattr(child, "mpris_player")
+                and child.mpris_player
+                and child.mpris_player.player_name == player_name
+            ):
                 self.player_stack.remove(child)
                 break
-        if not any(getattr(child, "mpris_player", None) for child in self.player_stack.get_children()):
+        if not any(
+            getattr(child, "mpris_player", None)
+            for child in self.player_stack.get_children()
+        ):
             pb = PlayerBox(mpris_player=None)
             self.player_stack.add_titled(pb, "nothing", "Nothing Playing")
         self.switcher.set_visible(True)
@@ -363,7 +486,9 @@ class Player(Box):
                         default_label = child
                         break
                 if default_label:
-                    label_player_name = getattr(default_label, "player_name", default_label.get_text().lower())
+                    label_player_name = getattr(
+                        default_label, "player_name", default_label.get_text().lower()
+                    )
                     icon_markup = get_player_icon_markup_by_name(label_player_name)
                     btn.remove(default_label)
                     new_label = Label(name="player-label", markup=icon_markup)
@@ -381,7 +506,9 @@ class Player(Box):
                         default_label = child
                         break
                 if default_label:
-                    label_player_name = getattr(default_label, "player_name", default_label.get_text().lower())
+                    label_player_name = getattr(
+                        default_label, "player_name", default_label.get_text().lower()
+                    )
                     if label_player_name == player_name.lower():
                         icon_markup = get_player_icon_markup_by_name(player_name)
                         btn.remove(default_label)
@@ -394,8 +521,10 @@ class Player(Box):
 
 class PlayerSmall(CenterBox):
     def __init__(self):
-        super().__init__(name="player-small", orientation="h", h_align="fill", v_align="center")
-        self._show_artist = True # toggle flag
+        super().__init__(
+            name="player-small", orientation="h", h_align="fill", v_align="center"
+        )
+        self._show_artist = True  # toggle flag
         self._display_options = ["cavalcade", "title", "artist"]
         self._display_index = 0
         self._current_display = "cavalcade"
@@ -404,7 +533,7 @@ class PlayerSmall(CenterBox):
             name="compact-mpris-icon",
             h_align="center",
             v_align="center",
-            child=Label(name="compact-mpris-icon-label", markup=icons.disc)
+            child=Label(name="compact-mpris-icon-label", markup=icons.disc),
         )
         # Remove scroll events; instead, add button press events.
         self.mpris_icon.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
@@ -427,10 +556,12 @@ class PlayerSmall(CenterBox):
             name="compact-mpris-button",
             h_align="center",
             v_align="center",
-            child=Label(name="compact-mpris-button-label", markup=icons.play)
+            child=Label(name="compact-mpris-button-label", markup=icons.play),
         )
         self.mpris_button.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        self.mpris_button.connect("button-press-event", self._on_play_pause_button_press)
+        self.mpris_button.connect(
+            "button-press-event", self._on_play_pause_button_press
+        )
         # Add hover effect
         add_hover_cursor(self.mpris_button)
 
@@ -446,9 +577,9 @@ class PlayerSmall(CenterBox):
             children=[
                 self.cavalcade_box,
                 self.mpris_label,
-            ]
+            ],
         )
-        self.center_stack.set_visible_child(self.cavalcade_box) # default to cavalcade
+        self.center_stack.set_visible_child(self.cavalcade_box)  # default to cavalcade
 
         # Create additional compact view.
         self.mpris_small = CenterBox(
@@ -459,7 +590,7 @@ class PlayerSmall(CenterBox):
             v_align="center",
             v_expand=False,
             start_children=self.mpris_icon,
-            center_children=self.center_stack, # Changed to center_stack to handle stack switching
+            center_children=self.center_stack,  # Changed to center_stack to handle stack switching
             end_children=self.mpris_button,
         )
 
@@ -489,17 +620,23 @@ class PlayerSmall(CenterBox):
             self.mpris_button.get_child().set_markup(icons.stop)
             self.mpris_icon.get_child().set_markup(icons.disc)
             if self._current_display != "cavalcade":
-                self.center_stack.set_visible_child(self.mpris_label) # if was title or artist, keep showing label
+                self.center_stack.set_visible_child(
+                    self.mpris_label
+                )  # if was title or artist, keep showing label
             else:
-                self.center_stack.set_visible_child(self.cavalcade_box) # default to cavalcade if no player
+                self.center_stack.set_visible_child(
+                    self.cavalcade_box
+                )  # default to cavalcade if no player
             return
 
         mp = self.mpris_player
 
         # Toggle between title and artist.
-        text = (mp.artist if self._show_artist and mp.artist
-                else (mp.title if mp.title and mp.title.strip()
-                      else "Nothing Playing"))
+        text = (
+            mp.artist
+            if self._show_artist and mp.artist
+            else (mp.title if mp.title and mp.title.strip() else "Nothing Playing")
+        )
 
         if len(text) > 25:
             text = text[:25] + "..."
@@ -507,34 +644,40 @@ class PlayerSmall(CenterBox):
         self.mpris_label.set_text(text)
 
         # Choose icon based on player name.
-        player_name = mp.player_name.lower() if hasattr(mp, "player_name") and mp.player_name else ""
+        player_name = (
+            mp.player_name.lower()
+            if hasattr(mp, "player_name") and mp.player_name
+            else ""
+        )
         icon_markup = get_player_icon_markup_by_name(player_name)
         self.mpris_icon.get_child().set_markup(icon_markup)
         self.update_play_pause_icon()
 
         if self._current_display == "title":
-            text = (mp.title if mp.title and mp.title.strip() else "Nothing Playing")
+            text = mp.title if mp.title and mp.title.strip() else "Nothing Playing"
             self.mpris_label.set_text(text)
             self.center_stack.set_visible_child(self.mpris_label)
         elif self._current_display == "artist":
-            text = (mp.artist if mp.artist else "Nothing Playing")
+            text = mp.artist if mp.artist else "Nothing Playing"
             self.mpris_label.set_text(text)
             self.center_stack.set_visible_child(self.mpris_label)
-        else: # default cavalcade
+        else:  # default cavalcade
             self.center_stack.set_visible_child(self.cavalcade_box)
-
 
     def _on_icon_button_press(self, widget, event):
         from gi.repository import Gdk
+
         if event.type == Gdk.EventType.BUTTON_PRESS:
             players = self.mpris_manager.players
             if not players:
                 return True
 
             if event.button == 2:  # Middle-click: cycle display
-                self._display_index = (self._display_index + 1) % len(self._display_options)
+                self._display_index = (self._display_index + 1) % len(
+                    self._display_options
+                )
                 self._current_display = self._display_options[self._display_index]
-                self._apply_mpris_properties() # Re-apply to update label/cavalcade
+                self._apply_mpris_properties()  # Re-apply to update label/cavalcade
                 return True
 
             # Cambiar de reproductor según el botón presionado.
@@ -581,9 +724,15 @@ class PlayerSmall(CenterBox):
             return
         # toggle between showing title and artist.
         self._show_artist = not self._show_artist
-        text = (self.mpris_player.artist if self._show_artist and self.mpris_player.artist
-                else (self.mpris_player.title if self.mpris_player.title and self.mpris_player.title.strip()
-                      else "nothing playing"))
+        text = (
+            self.mpris_player.artist
+            if self._show_artist and self.mpris_player.artist
+            else (
+                self.mpris_player.title
+                if self.mpris_player.title and self.mpris_player.title.strip()
+                else "nothing playing"
+            )
+        )
         if len(text) > 25:
             text = text[:25] + "..."
         self.mpris_label.set_text(text)
@@ -616,13 +765,13 @@ class PlayerSmall(CenterBox):
     def on_player_vanished(self, manager, player_name):
         players = self.mpris_manager.players
         if players and self.mpris_player:
-            if players: # Check if players is not empty after vanishing
+            if players:  # Check if players is not empty after vanishing
                 self.current_index = self.current_index % len(players)
                 new_player = MprisPlayer(players[self.current_index])
                 self.mpris_player = new_player
                 self.mpris_player.connect("changed", self._on_mpris_changed)
             else:
-                self.mpris_player = None # No players left
+                self.mpris_player = None  # No players left
         elif not players:
             self.mpris_player = None
         self._apply_mpris_properties()

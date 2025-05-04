@@ -11,28 +11,23 @@ chat: str = "&#xf59f;"
 wallpapers: str = "&#xeb01;"
 windows: str = "&#xefe6;"
 
-video: str = "&#xeafa;"  # video
 # Bar
 colorpicker: str = "&#xebe6;"
 media: str = "&#xf00d;"
 
-
-# network
-
-
-download: str = "&#xea96;"
-upload: str = "&#xeb47;"
 # Toolbox
+
 toolbox: str = "&#xebca;"
 ssfull: str = "&#xec3c;"
 ssregion: str = "&#xf201;"
+sswindow: str = "&#xeaea;"
 screenshots: str = "&#xeb0a;"
 screenrecord: str = "&#xed22;"
 recordings: str = "&#xeafa;"
 ocr: str = "&#xfcc3;"
 gamemode: str = "&#xf026;"
 gamemode_off: str = "&#xf111;"
-close : str = "&#xeb55;"
+close: str = "&#xeb55;"
 
 # Circles
 temp: str = "&#xeb38;"
@@ -40,7 +35,7 @@ disk: str = "&#xea88;"
 battery: str = "&#xea38;"
 memory: str = "&#xfa97;"
 cpu: str = "&#xef8e;"
-
+gpu: str = "&#xf233;"
 
 # AIchat
 reload: str = "&#xf3ae;"
@@ -77,18 +72,7 @@ bat_low: str = "&#xff1d;"
 bat_full: str = "&#xea38;"
 
 
-# Sensors
-battery_25: str = "&#xea2f;"
-battery_50: str = "&#xea30;"
-battery_75: str = "&#xea31;"
-battery_100: str = "&#xea32;"
-battery_charging: str = "&#xea33;"
-
-update: str = "&#xfa0a;"
-updated: str = "&#xf704;"
-
 # Applets
-wifi: str = "&#xeb52;"
 wifi_0: str = "&#xeba3;"
 wifi_1: str = "&#xeba4;"
 wifi_2: str = "&#xeba5;"
@@ -105,12 +89,6 @@ bluetooth_off: str = "&#xeceb;"
 night_off: str = "&#xf162;"
 notifications_off: str = "&#xece9;"
 
-# Network
-wifi_0: str = "&#xeba3;"
-wifi_1: str = "&#xeba4;"
-wifi_2: str = "&#xeba5;"
-download: str = "&#xea96;"
-upload: str = "&#xeb47;"
 notifications_clear: str = "&#xf814;"
 
 download: str = "&#xea96;"
@@ -162,34 +140,9 @@ trash: str = "&#xeb41;"
 config: str = "&#xeb20;"
 
 # Icons
-desktop: str = "&#xea89;"
 firefox: str = "&#xecfd;"
 chromium: str = "&#xec18;"
 spotify: str = "&#xfe86;"
-code: str = "&#xf3a0;"
-discord: str = "&#xece3;"
-obsidian: str = "&#xeff5;"
-anytype: str = "&#xf495;"
-safari: str = "&#xec23;"
-obs: str = "&#xef70;"
-ghost: str = "&#xfc13;"
-appstore: str = "&#xebb6;"
-bottle: str = "&#xfa89;"
-theme: str = "&#xeb00;"
-
-writing: str = "&#xef08;"
-brush: str = "&#xebb8;"
-
-apple: str = "&#xec17;"
-mobile: str = "&#xea8a;"
-
-finder: str = "&#xf218;"
-folder: str = "&#xeaad;"
-zip: str = "&#xed4e;"
-
-terminal: str = "&#xebef;"
-
-
 disc: str = "&#x1003e;"
 disc_off: str = "&#xf118;"
 
@@ -221,98 +174,3 @@ def apply_span() -> None:
 
 
 apply_span()
-
-
-def get_class_icon(win_class):
-    icon = ghost  # Default icon if no match is found
-
-    match win_class:
-        case "unknown":
-            icon = desktop
-        case "firefox":
-            icon = firefox
-        case "org.kde.dolphin":
-            icon = finder
-        case "chromium" | "google-chrome" | "brave-browser":
-            icon = chromium
-        case "Spotify":
-            icon = spotify
-        case "code" | "com.visualstudio.code":
-            icon = code
-        case "com.discordapp.Discord" | "discord":
-            icon = discord
-        case "kitty" | "alacritty" | "wezterm" | "gnome-terminal" | "xfce4-terminal":
-            icon = terminal
-        case "obsidian":
-            icon = obsidian
-        case "anytype":
-            icon = anytype
-        case "zen" | "safari":
-            icon = safari
-        case "com.obsproject.Studio":
-            icon = obs
-        case "org.kde.kdeconnect.app" | "org.kde.kdeconnect-settings" | "GStreamer":
-            icon = mobile
-        case "org.kde.discover":
-            icon = appstore
-        case "org.pulseaudio.pavucontrol" | "pavucontrol":
-            icon = vol_high
-        case (
-            "com.github.flxzt.rnote"
-            | "com.github.xournalpp.xournalpp"
-            | "org.gnome.gedit"
-            | "gedit"
-        ):
-            icon = writing
-        case "krita":
-            icon = brush
-        case "org.kde.ark":
-            icon = zip
-        case "com.usebottles.bottles":
-            icon = bottle
-        case "nwg-look":
-            icon = theme
-        case "thunderbird":
-            icon = "&#xf0e0;"  # mail
-        case "vlc" | "mpv" | "org.kde.kdenlive":
-            icon = "&#xeafa;"  # video
-        case "steam":
-            icon = "&#xf1b6;"  # steam
-        case "lutris":
-            icon = "&#xf11b;"  # lutris
-        case "heroic":
-            icon = "&#xe3e5;"  # heroic
-        case "telegram-desktop":
-            icon = "&#xf2c6;"  # telegram
-        case "signal":
-            icon = "&#xf3f7;"  # signal
-        case "whatsapp-for-linux":
-            icon = "&#xf232;"  # whatsapp
-        case "slack":
-            icon = "&#xf198;"  # slack
-        case "teams-for-linux" | "Microsoft Teams - Preview":
-            icon = "&#xf4c4;"  # teams
-        case "element":
-            icon = "&#xf3b6;"  # matrix
-        case "bitwarden":
-            icon = "&#xf2c1;"  # password
-        case "qbittorrent":
-            icon = "&#xf2e4;"  # torrent
-        case "android-studio":
-            icon = "&#xf17b;"  # android
-        case "inkscape":
-            icon = "&#xf5d1;"  # vector
-        case "gimp":
-            icon = "&#xf1fc;"  # gimp
-        case "libreoffice-writer" | "libreoffice":
-            icon = "&#xf5c3;"  # libreoffice
-        case "blender":
-            icon = "&#xf1d1;"  # blender
-        case "godot":
-            icon = "&#xf313;"  # godot
-        case "unityhub":
-            icon = "&#xf949;"  # unity
-        case _:
-            icon = ghost  # Default
-
-    return icon

@@ -267,24 +267,24 @@ class MprisPlayerManager(Service):
         super().__init__(**kwargs)
 
     def on_name_appeard(self, manager, player_name: Playerctl.PlayerName):
-        if not OTHERPLAYERS or not player_name.name.startswith(("chromium", "firefox")):
+        if OTHERPLAYERS or not player_name.name.startswith(("chromium", "firefox")):
             logger.info(f"[MprisPlayer] {player_name.name} appeared")
             new_player = Playerctl.Player.new_from_name(player_name)
             manager.manage_player(new_player)
             self.emit("player-appeared", new_player)  # type: ignore
 
     def on_name_vanished(self, manager, player_name: Playerctl.PlayerName):
-        if not OTHERPLAYERS or not player_name.name.startswith(("chromium", "firefox")):
+        if OTHERPLAYERS or not player_name.name.startswith(("chromium", "firefox")):
             logger.info(f"[MprisPlayer] {player_name.name} vanished")
             self.emit("player-vanished", player_name.name)  # type: ignore
 
     @Property(object, "readable")
     def players(self):
         for player in self._manager.get_property("player-names"):  # type: ignore
-            if not OTHERPLAYERS or not player.name.startswith(("chromium", "firefox")):
+            if OTHERPLAYERS or not player.name.startswith(("chromium", "firefox")):
                 return self._manager.get_property("players")  # type: ignore
 
     def add_players(self):
         for player in self._manager.get_property("player-names"):  # type: ignore
-            if not OTHERPLAYERS or not player.name.startswith(("chromium", "firefox")):
+            if OTHERPLAYERS or not player.name.startswith(("chromium", "firefox")):
                 self._manager.manage_player(Playerctl.Player.new_from_name(player))  # type: ignore
