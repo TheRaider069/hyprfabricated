@@ -1451,14 +1451,14 @@ class HyprConfGUI(Window):
             current_bind_vars[prefix_key] = prefix_entry.get_text()
             current_bind_vars[suffix_key] = suffix_entry.get_text()
 
-        bind_vars["wallpapers_dir"] = self.wall_dir_chooser.get_filename()
-        bind_vars["vertical"] = self.vertical_switch.get_active()
-        bind_vars["centered_bar"] = self.centered_switch.get_active()
-        bind_vars["dock_enabled"] = self.dock_switch.get_active()
-        bind_vars["dock_always_occluded"] = self.dock_hover_switch.get_active()
-        bind_vars["dock_icon_size"] = int(self.dock_size_scale.value)
-        bind_vars["terminal_command"] = self.terminal_entry.get_text()
-        bind_vars["corners_visible"] = self.corners_switch.get_active()
+        current_bind_vars["wallpapers_dir"] = self.wall_dir_chooser.get_filename()
+        current_bind_vars["vertical"] = self.vertical_switch.get_active()
+        current_bind_vars["centered_bar"] = self.centered_switch.get_active()
+        current_bind_vars["dock_enabled"] = self.dock_switch.get_active()
+        current_bind_vars["dock_always_occluded"] = self.dock_hover_switch.get_active()
+        current_bind_vars["dock_icon_size"] = int(self.dock_size_scale.value)
+        current_bind_vars["terminal_command"] = self.terminal_entry.get_text()
+        current_bind_vars["corners_visible"] = self.corners_switch.get_active()
         current_bind_vars["bar_workspace_show_number"] = self.ws_num_switch.get_active()
         current_bind_vars["bar_workspace_use_chinese_numerals"] = (
             self.ws_chinese_switch.get_active()
@@ -1466,14 +1466,14 @@ class HyprConfGUI(Window):
 
         for component_name, switch in self.component_switches.items():
             config_key = f"bar_{component_name}_visible"
-            bind_vars[config_key] = switch.get_active()
+            current_bind_vars[config_key] = switch.get_active()
 
         for component_name, switch in self.widgets_switches.items():
             config_key = f"widgets_{component_name}_visible"
-            bind_vars[config_key] = switch.get_active()
+            current_bind_vars[config_key] = switch.get_active()
         for component_name, switch in self.misc_switches.items():
             config_key = f"misc_{component_name}"
-            bind_vars[config_key] = switch.get_active()
+            current_bind_vars[config_key] = switch.get_active()
         # for debugging purposes
         # for component_name, switch in self.widgets_switches.items():
         #     config_key = f"wid_{component_name}_visible"
@@ -1484,27 +1484,21 @@ class HyprConfGUI(Window):
         # for component_name, switch in self.misc_switches.items():
         #     config_key = f"misc_{component_name}_visible"
         #     print(config_key, switch.get_active())
-        config_json = os.path.expanduser(f"~/.config/{APP_NAME_CAP}/config/config.json")
-        # Save metrics visibility
-        bind_vars["metrics_visible"] = {
+        current_bind_vars["metrics_visible"] = {
             k: s.get_active() for k, s in self.metrics_switches.items()
         }
-        bind_vars["metrics_small_visible"] = {
+        current_bind_vars["metrics_small_visible"] = {
             k: s.get_active() for k, s in self.metrics_small_switches.items()
         }
 
-        bind_vars["bar_metrics_disks"] = []
-        for entry in self.disk_entries.children:
-            bind_vars["bar_metrics_disks"].append(entry.children[0].get_text())
+        current_bind_vars["bar_metrics_disks"] = [
+            entry.children[0].get_text() for entry in self.disk_entries.children
+        ]
 
-        config_json = os.path.expanduser(f"~/.config/{APP_NAME_CAP}/config/config.json")
-        os.makedirs(os.path.dirname(config_json), exist_ok=True)
-        try:
-            with open(config_json, "w") as f:
-                json.dump(bind_vars, f, indent=4)
-        except Exception as e:
-            print(f"Error saving config.json: {e}")
-
+        # Store state of lock/idle switches and selected icon path
+        selected_icon_path = self.selected_face_icon  # Copy path for the thread
+        replace_lock = self.lock_switch and self.lock_switch.get_active()
+        replace_idle = self.idle_switch and self.idle_switch.get_active()
         # Reset GUI state immediately (safe to do before starting thread)
         if self.selected_face_icon:
             self.selected_face_icon = None  # Clear the selection state
@@ -1608,7 +1602,9 @@ class HyprConfGUI(Window):
             print(f"{time.time():.4f}: Finished start_config().")
 
             # Restart Ax-Shell using subprocess.Popen for better detachment
-            print(f"{time.time():.4f}: Initiating Ax-Shell restart using Popen...")
+            print(
+                f"{time.time():.4f}: Initiating Hyprfabricated restart using Popen..."
+            )
             main_script_path = os.path.expanduser(f"~/.config/{APP_NAME_CAP}/main.py")
             kill_cmd = f"killall {APP_NAME}"
             # Use shell=True carefully, but it's often needed for commands like killall
@@ -1648,7 +1644,9 @@ class HyprConfGUI(Window):
                 print(f"Error restarting {APP_NAME_CAP}: Command not found ({e})")
             except Exception as e:
                 print(f"Error restarting {APP_NAME_CAP} via Popen: {e}")
-            print(f"{time.time():.4f}: Ax-Shell restart commands issued via Popen.")
+            print(
+                f"{time.time():.4f}: Hyprfabricated restart commands issued via Popen."
+            )
 
             end_time = time.time()
             print(
