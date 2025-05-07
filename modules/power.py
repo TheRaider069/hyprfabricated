@@ -98,7 +98,7 @@ class PowerMenu(Box):
 
     def logout(self, *args):
         print("Logging out...")
-        exec_shell_command_async("bash -c 'loginctl kill-session $XDG_SESSION_ID'")
+        exec_shell_command_async('loginctl terminate-user ""')
         self.close_menu()
 
     def reboot(self, *args):

@@ -12,19 +12,16 @@ import datetime
 from gi.repository import GLib
 from concurrent.futures import ThreadPoolExecutor
 import time
-from config.data import load_config
+from config.data import DOCK_ICON_SIZE
 import config.data as data
 import subprocess
 
 executor = ThreadPoolExecutor(max_workers=4)
 
 
-config = load_config()
-
-
 def margin():
     return (
-        config.get("dock_icon_size") + 10
+        DOCK_ICON_SIZE + 10
         if not data.DOCK_ALWAYS_OCCLUDED and data.DOCK_ENABLED
         else 0
     )
